@@ -1,0 +1,17 @@
+{
+  "name": "certrix-node-netlify",
+  "version": "1.0.0",
+  "description": "Certrix 2.x clone in Node.js for Netlify Functions",
+  "private": true,
+  "scripts": {
+    "dev": "netlify dev",
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "node-forge": "^1.3.1"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}

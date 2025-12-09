@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Certrix 2.2 — Digital Certificate Generator (Netlify / Node)</title>
+<style>
+:root{
+  --bg:#071018;
+  --muted:#9fb0c0;
+  --accent-1:#5f7cf2;
+  --glass-border: rgba(255,255,255,0.04);
+}
+html,body{
+  height:100%;
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  background:var(--bg);
+  color:#eaf5ff;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:0;
+  background: linear-gradient(180deg, rgba(6,9,14,0.62), rgba(4,6,10,0.72));
+  pointer-events:none;
+}
+.bg-pattern{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  background-size:cover;
+  background-position:center;
+  opacity:0.12;
+  mix-blend-mode:overlay;
+  pointer-events:none;
+  filter: contrast(0.9) saturate(0.8);
+}
+.wrap{
+  position:relative;
+  z-index:2;
+  max-width:1100px;
+  margin:36px auto;
+  padding:18px;
+  box-sizing:border-box;
+}
+.panel{
+  background: linear-gradient(180deg, rgba(20,28,34,0.72), rgba(8,12,16,0.78));
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,0.03);
+  padding:22px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px) saturate(1.05);
+}
+.title-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+}
+.logo{
+  font-weight:800;
+  letter-spacing:0.8px;
+  font-size:13px;
+  color:#cfe6ff;
+}
+h1{
+  margin:0 0 6px;
+  font-size:24px;
+  color:#eaf5ff;
+}
+p.lead{
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+}
+
+/* grid */
+.panel-grid{
+  display:grid;
+  grid-template-columns: 1fr 380px;
+  gap:24px;
+  align-items:flex-start;
+  margin-bottom:20px;
+}
+@media (max-width:980px){
+  .panel-grid{ grid-template-columns:1fr; }
+}
+
+/* sections */
+.section{
+  background: rgba(255,255,255,0.012);
+  border-radius:12px;
+  border: 1px solid rgba(255,255,255,0.035);
+  padding:16px;
+  position:relative;
+  z-index:1;
+  overflow:visible;
+  margin-top:18px;
+}
+.section:first-of-type{
+  margin-top:0;
+}
+.section.output-box{
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.008));
+}
+
+/* labels & inputs */
+label.small{
+  display:block;
+  font-size:11px;
+  color:var(--muted);
+  margin-bottom:8px;
+  font-weight:700;
+  letter-spacing:0.6px;
+}
+.input{
+  box-sizing:border-box;
+  padding-left:14px;
+  padding-right:52px;
+  min-height:44px;
+  line-height:1.2;
+  display:block;
+  position:relative;
+  z-index:2;
+  width:100%;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.03);
+  background:rgba(255,255,255,0.02);
+  color:#dff0ff;
+  font-size:14px;
+  outline:none;
+  transition: box-shadow .12s, border-color .12s;
+}
+textarea.input{
+  min-height:100px;
+  padding-top:10px;
+  padding-bottom:10px;
+  resize:vertical;
+}
+input::placeholder, textarea::placeholder{
+  color: rgba(220,235,250,0.17);
+}
+input:focus, textarea:focus, select:focus{
+  box-shadow: 0 10px 28px rgba(80,100,255,0.06);
+  border-color: rgba(115,140,255,0.12);
+}
+select.input{ padding-right:36px; }
+
+/* layout rows */
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  align-items:stretch;
+  margin-top:12px;
+}
+.single{ margin-top:12px; }
+
+/* buttons & messages */
+.footer-row{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin-top:16px;
+  flex-wrap:wrap;
+}
+.btn{
+  background: linear-gradient(180deg,var(--accent-1), #6b8cff);
+  color:white;
+  border:0;
+  padding:10px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:700;
+  box-shadow:0 10px 28px rgba(20,30,60,0.45);
+}
+.btn.ghost{
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.04);
+  color:var(--muted);
+  padding:8px 12px;
+  border-radius:10px;
+}
+.btn.small{
+  font-size:12px;
+  padding:6px 10px;
+}
+.muted{
+  color:var(--muted);
+  font-size:13px;
+}
+.hint{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:6px;
+}
+.msg{
+  padding:10px 12px;
+  border-radius:8px;
+  margin-top:8px;
+  font-weight:700;
+  font-size:13px;
+}
+.ok{ background: rgba(16,185,129,0.08); color:#7ee3c1; }
+.err{ background: rgba(239,68,68,0.06); color:#ffb4b4; }
+
+footer.site{
+  text-align:center;
+  margin-top:18px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+/* autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus{
+  -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.02) inset !important;
+  box-shadow: 0 0 0px 1000px rgba(255,255,255,0.02) inset !important;
+}
+
+/* modal */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.65);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:50;
+}
+.modal{
+  width:100%;
+  max-width:480px;
+  background:linear-gradient(180deg, rgba(15,20,28,0.98), rgba(6,10,16,0.98));
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,0.08);
+  box-shadow:0 18px 40px rgba(0,0,0,0.85);
+  padding:16px 18px 14px;
+}
+.modal-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+}
+.modal-header h3{
+  margin:0;
+  font-size:16px;
+}
+.modal-close{
+  background:transparent;
+  border:0;
+  color:#9fb0c0;
+  font-size:20px;
+  cursor:pointer;
+}
+.modal-body{
+  font-size:13px;
+  color:#dce9f7;
+}
+.modal-body table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+.modal-body th,
+.modal-body td{
+  padding:4px 0;
+  text-align:left;
+}
+.modal-body th{
+  width:110px;
+  color:#9fb0c0;
+  font-weight:600;
+}
+.modal-footer{
+  text-align:right;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+<!-- If you add bg-pattern.jpg to /public, this will show it -->
+<div class="bg-pattern" style="background-image:url('/bg-pattern.jpg')"></div>
+
+<div class="wrap">
+  <div class="panel">
+    <div class="title-row">
+      <div>
+        <div class="logo"></div>
+        <h1>Certrix - Digital Certificate Generator</h1>
+        <p class="lead">
+          Create new certificates or renew existing ones from CSR, signed by the persisted CA.<br>
+        </p>
+      </div>
+      <div style="color:var(--muted); font-size:12px">Certrix 2.2.3 (Node / Netlify)</div>
+    </div>
+
+    <!-- New certificate -->
+    <div class="panel-grid">
+      <!-- NOTE: action now points to Netlify function -->
+      <form id="newForm" method="post" action="/.netlify/functions/generate" style="min-width:0">
+        <div class="section">
+          <label class="small">Common Name (CN)</label>
+          <input class="input" name="cn" required maxlength="128" placeholder="Common Name " />
+
+          <div class="row">
+            <div>
+              <label class="small">Country (2-letter)</label>
+              <input class="input" name="country" maxlength="2" placeholder="Country Eg:IN" />
+            </div>
+            <div>
+              <label class="small">State / Province</label>
+              <input class="input" name="state" placeholder="State" />
+            </div>
+          </div>
+
+          <div class="single">
+            <label class="small">Locality / City</label>
+            <input class="input" name="locality" placeholder="Locality" />
+          </div>
+
+          <div class="row">
+            <div>
+              <label class="small">Organization (O)</label>
+              <input class="input" name="org" placeholder="Organization" />
+            </div>
+            <div>
+              <label class="small">Organizational Unit (OU)</label>
+              <input class="input" name="ou" placeholder="Organizational Unit" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label class="small">Validity (years)</label>
+              <input class="input" name="years" type="number" value="5" min="5" max="50" />
+            </div>
+            <div>
+              <label class="small">RSA key size (bits)</label>
+              <select class="input" name="key_size">
+                <option>2048</option>
+                <option>3072</option>
+                <option>4096</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label class="small">Private key passphrase</label>
+              <input class="input" name="key_pass" type="password" autocomplete="new-password" />
+            </div>
+            <div>
+              <label class="small">PFX passphrase</label>
+              <input class="input" name="pfx_pass" type="password" autocomplete="new-password" />
+            </div>
+          </div>
+
+          <div class="footer-row">
+            <button id="newSubmit" class="btn" type="submit">
+              <span id="newSpinner" style="display:none">⏳</span>&nbsp;
+              Generate &amp; Download ZIP
+            </button>
+            <button type="button" class="btn ghost" onclick="resetNewForm()">Reset</button>
+            <div id="newMsg" style="flex:1"></div>
+          </div>
+          <div class="hint">
+            Tip: use ASCII-only passphrases for max compatibility. Avoid empty PFX password if possible.
+          </div>
+        </div>
+      </form>
+
+      <aside class="section output-box">
+        <h3 style="margin:0 0 6px">Output (New certificate)</h3>
+        <ul style="margin-left:18px; color:var(--muted); padding-left:0">
+          <li><strong>certificate.prv</strong> — Private key (PEM)</li>
+          <li><strong>certificate.csr</strong> — CSR (PEM)</li>
+          <li><strong>certificate.cer</strong> — End-entity certificate (PEM)</li>
+          <li><strong>certificate.pfx</strong> — PKCS#12 / PFX (legacy 3DES+SHA1, chain included)</li>
+        </ul>
+        <hr style="border:none; height:1px; background:rgba(255,255,255,0.03); margin:10px 0">
+      </aside>
+    </div>
+
+    <!-- Renew single CSR -->
+    <div class="section">
+      <h3 style="margin-top:0;margin-bottom:6px;">Renew certificate from existing CSR</h3>
+      <p class="muted" style="margin-top:0;margin-bottom:10px;">
+        Upload a CSR file (<code>.csr</code>, <code>.pem</code>, <code>.der</code>) or paste CSR text.
+        Certrix will auto-detect PEM/DER, sign with the persistent CA and return a renewed <code>&lt;CN&gt;.cer</code>.
+      </p>
+
+      <!-- action -> Netlify function -->
+      <form id="renewForm" method="post" action="/.netlify/functions/renew">
+        <div class="single">
+          <label class="small">CSR file (optional)</label>
+          <input class="input" type="file" name="csr_file" accept=".csr,.pem,.der,.txt" />
+        </div>
+
+        <div class="single">
+          <label class="small">Or paste CSR (PEM text)</label>
+          <textarea class="input" name="csr_text" placeholder="-----BEGIN CERTIFICATE REQUEST-----"></textarea>
+        </div>
+
+        <div class="single">
+          <label class="small">Validity (years)</label>
+          <input class="input" name="years" type="number" value="5" min="5" max="50" />
+        </div>
+
+        <div class="footer-row">
+          <button type="button" class="btn small" onclick="previewCsr()">Preview CSR</button>
+          <button id="renewSubmit" class="btn" type="submit">
+            <span id="renewSpinner" style="display:none">⏳</span>&nbsp;
+            Sign CSR &amp; Download CER
+          </button>
+          <div id="renewMsg" style="flex:1"></div>
+        </div>
+        <div class="hint">
+          Subject and public key come from the CSR. CA and validity are controlled here.
+        </div>
+      </form>
+    </div>
+
+    <!-- Bulk CSR renewal -->
+    <div class="section">
+      <h3 style="margin-top:0;margin-bottom:6px;">Bulk CSR renewal (ZIP → ZIP)</h3>
+      <p class="muted" style="margin-top:0;margin-bottom:10px;">
+        Upload a ZIP containing multiple CSR files. For each valid CSR, Certrix will issue
+        a renewed certificate named <code>&lt;CN&gt;.cer</code> and return a ZIP with all renewed certs.
+      </p>
+
+      <!-- action -> Netlify function -->
+      <form id="bulkForm" method="post" action="/.netlify/functions/renew_bulk">
+        <div class="row">
+          <div>
+            <label class="small">CSR ZIP file</label>
+            <input class="input" type="file" name="csr_zip" accept=".zip" />
+          </div>
+          <div>
+            <label class="small">Validity (years)</label>
+            <input class="input" name="years" type="number" value="5" min="5" max="50" />
+          </div>
+        </div>
+        <div class="footer-row">
+          <button id="bulkSubmit" class="btn" type="submit">
+            <span id="bulkSpinner" style="display:none">⏳</span>&nbsp;
+            Renew All &amp; Download ZIP
+          </button>
+          <div id="bulkMsg" style="flex:1"></div>
+        </div>
+      </form>
+    </div>
+
+    <footer class="site">
+       Certrix
+    </footer>
+  </div>
+</div>
+
+<!-- CSR Preview Modal -->
+<div id="csrModal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>CSR Preview</h3>
+      <button type="button" class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="csrModalBody">
+        Loading…
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn ghost" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- Common handles ----
+  const newForm   = document.getElementById('newForm');
+  const newMsg    = document.getElementById('newMsg');
+  const newBtn    = document.getElementById('newSubmit');
+  const newSpin   = document.getElementById('newSpinner');
+
+  const renewForm = document.getElementById('renewForm');
+  const renewMsg  = document.getElementById('renewMsg');
+  const renewBtn  = document.getElementById('renewSubmit');
+  const renewSpin = document.getElementById('renewSpinner');
+
+  const bulkForm  = document.getElementById('bulkForm');
+  const bulkMsg   = document.getElementById('bulkMsg');
+  const bulkBtn   = document.getElementById('bulkSubmit');
+  const bulkSpin  = document.getElementById('bulkSpinner');
+
+  const csrModal      = document.getElementById('csrModal');
+  const csrModalBody  = document.getElementById('csrModalBody');
+
+  function showMsg(el, text, type) {
+    el.innerHTML = '<div class="msg ' + (type === 'err' ? 'err' : 'ok') + '">' + text + '</div>';
+  }
+
+  function resetNewForm() {
+    newForm.reset();
+    newMsg.innerHTML = '';
+  }
+
+  function openModal() {
+    csrModal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    csrModal.style.display = 'none';
+  }
+
+  // ---- Small helpers for file reading ----
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsText(file);
+    });
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => {
+        // result: "data:...;base64,AAAA..."
+        const result = r.result || '';
+        const commaIndex = result.indexOf(',');
+        if (commaIndex === -1) return resolve('');
+        resolve(result.slice(commaIndex + 1));
+      };
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+  }
+
+  // Helper to trigger download from blob
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---- New certificate: JSON POST → ZIP ----
+  newForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    newMsg.innerHTML = '';
+    newBtn.disabled = true;
+    newSpin.style.display = 'inline-block';
+
+    const fd = new FormData(newForm);
+    const body = {};
+    fd.forEach((v, k) => body[k] = v);
+
+    try {
+      const resp = await fetch(newForm.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => resp.statusText);
+        showMsg(newMsg, 'Error: ' + t, 'err');
+        return;
+      }
+      const blob = await resp.blob();
+      const cd = resp.headers.get('Content-Disposition') || '';
+      const match = cd.match(/filename="(.+)"/);
+      const filename = match ? match[1] : 'certs.zip';
+      downloadBlob(blob, filename);
+      showMsg(newMsg, 'Download started: ' + filename, 'ok');
+    } catch (err) {
+      console.error(err);
+      showMsg(newMsg, 'Server or network error', 'err');
+    } finally {
+      newBtn.disabled = false;
+      newSpin.style.display = 'none';
+    }
+  });
+
+  // ---- Single renew: CSR file (base64) or text → CER ----
+  renewForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    renewMsg.innerHTML = '';
+    renewBtn.disabled = true;
+    renewSpin.style.display = 'inline-block';
+
+    const fileInput = renewForm.querySelector('input[name="csr_file"]');
+    const textArea  = renewForm.querySelector('textarea[name="csr_text"]');
+    const years     = (renewForm.querySelector('input[name="years"]').value || '').trim();
+
+    const file = fileInput.files[0];
+    const text = (textArea.value || '').trim();
+
+    if (!file && !text) {
+      showMsg(renewMsg, 'Please choose a CSR file or paste CSR text.', 'err');
+      renewBtn.disabled = false;
+      renewSpin.style.display = 'none';
+      return;
+    }
+
+    try {
+      const payload = { years };
+
+      if (file) {
+        // Send binary CSR as base64 so backend can handle DER or PEM
+        payload.csrBase64 = await readFileAsBase64(file);
+        payload.csrFileName = file.name;
+      } else {
+        // Pasted PEM text
+        payload.csrText = text;
+      }
+
+      const resp = await fetch(renewForm.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => resp.statusText);
+        showMsg(renewMsg, 'Error: ' + t, 'err');
+        return;
+      }
+
+      const blob = await resp.blob();
+      let filename = 'renewed.cer';
+      const cd = resp.headers.get('Content-Disposition') || '';
+      const m = cd.match(/filename="(.+)"/);
+      if (m && m[1]) filename = m[1];
+      const headerName = resp.headers.get('X-Suggested-Filename');
+      if (headerName) filename = headerName;
+
+      downloadBlob(blob, filename);
+      showMsg(renewMsg, 'Renewed certificate download started: ' + filename, 'ok');
+    } catch (err) {
+      console.error(err);
+      showMsg(renewMsg, 'Server or network error', 'err');
+    } finally {
+      renewBtn.disabled = false;
+      renewSpin.style.display = 'none';
+    }
+  });
+
+  // ---- Bulk renew: ZIP → JSON (zipBase64) → ZIP ----
+  bulkForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    bulkMsg.innerHTML = '';
+    bulkBtn.disabled = true;
+    bulkSpin.style.display = 'inline-block';
+
+    const fileInput = bulkForm.querySelector('input[name="csr_zip"]');
+    const yearsInput = bulkForm.querySelector('input[name="years"]');
+    const file = fileInput.files[0];
+
+    if (!file) {
+      showMsg(bulkMsg, 'Please select a ZIP file with CSR files.', 'err');
+      bulkBtn.disabled = false;
+      bulkSpin.style.display = 'none';
+      return;
+    }
+
+    try {
+      const zipBase64 = await readFileAsBase64(file);
+      const payload = {
+        zipBase64,
+        years: yearsInput.value || '5'
+      };
+
+      const resp = await fetch(bulkForm.action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!resp.ok) {
+        const t = await resp.text().catch(() => resp.statusText);
+        showMsg(bulkMsg, 'Error: ' + t, 'err');
+        return;
+      }
+
+      const blob = await resp.blob();
+      const cd = resp.headers.get('Content-Disposition') || '';
+      const m = cd.match(/filename="(.+)"/);
+      const filename = m && m[1] ? m[1] : 'renewed_certs.zip';
+
+      downloadBlob(blob, filename);
+      showMsg(bulkMsg, 'Bulk renewed ZIP download started: ' + filename, 'ok');
+    } catch (err) {
+      console.error(err);
+      showMsg(bulkMsg, 'Server or network error', 'err');
+    } finally {
+      bulkBtn.disabled = false;
+      bulkSpin.style.display = 'none';
+    }
+  });
+
+  // ---- CSR preview → JSON POST → Modal ----
+  async function previewCsr() {
+    renewMsg.innerHTML = '';
+    const fileInput = renewForm.querySelector('input[name="csr_file"]');
+    const textArea  = renewForm.querySelector('textarea[name="csr_text"]');
+    const file = fileInput.files[0];
+    const text = (textArea.value || '').trim();
+
+    if (!file && !text) {
+      showMsg(renewMsg, 'Please choose a CSR file or paste CSR text to preview.', 'err');
+      return;
+    }
+
+    csrModalBody.innerHTML = 'Parsing CSR…';
+    openModal();
+
+    try {
+      const payload = {};
+      if (file) {
+        payload.csrBase64 = await readFileAsBase64(file);
+        payload.csrFileName = file.name;
+      } else {
+        payload.csrText = text;
+      }
+
+      const resp = await fetch('/.netlify/functions/csr_preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok || data.error) {
+        const msg = (data && data.error) ? data.error : 'Unknown error';
+        csrModalBody.innerHTML = '<div style="color:#ffb4b4;">Preview error: ' + msg + '</div>';
+        return;
+      }
+
+      const subj = data.subject || {};
+      const rows = [
+        ['Common Name (CN)', subj.CN || ''],
+        ['Organization (O)', subj.O || ''],
+        ['Org Unit (OU)', subj.OU || ''],
+        ['Country (C)', subj.C || ''],
+        ['State / Province (ST)', subj.ST || ''],
+        ['Locality / City (L)', subj.L || '']
+      ];
+      let html = '<table>';
+      for (const [label, val] of rows) {
+        html += '<tr><th>' + label + '</th><td>' + (val || '<span style="color:#637180;">(empty)</span>') + '</td></tr>';
+      }
+      html += '</table>';
+      csrModalBody.innerHTML = html;
+    } catch (err) {
+      console.error(err);
+      csrModalBody.innerHTML = '<div style="color:#ffb4b4;">Server or network error during preview.</div>';
+    }
+  }
+
+  // Expose a few helpers globally for HTML onclick=""
+  window.previewCsr = previewCsr;
+  window.closeModal = closeModal;
+  window.resetNewForm = resetNewForm;
+</script>
+</body>
+</html>
