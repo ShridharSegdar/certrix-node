@@ -2,6 +2,7 @@
 const {
   renewFromCsrBytes
 } = require('./certrix-core');
+const forge = require('node-forge');
 
 function corsHeaders() {
   return {
@@ -67,7 +68,7 @@ exports.handler = async (event) => {
       isBase64Encoded: true,
       headers: {
         ...corsHeaders(),
-        'Content-Type': 'application/x-pem-file',
+        'Content-Type': 'application/x-x509-ca-cert',
         'Content-Disposition': `attachment; filename="${result.filename}"`,
         'X-Suggested-Filename': result.filename
       },

@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const pki = forge.pki;
 
 // ---- Config ----
-const CA_COMMON_NAME = 'ICICI Bank Certifying Authority for H2H';
+const CA_COMMON_NAME = 'ICICI Bank Certifying Authority for S2S';
 const CA_ORG = 'ICICI Bank';
 const CA_COUNTRY = 'IN';
 
@@ -15,6 +15,13 @@ const CA_COUNTRY = 'IN';
 let cachedCa = null;
 
 // ---------- Helpers ----------
+function pemCertToDerBuffer(pem) {
+  const cert = pki.certificateFromPem(pem);
+  const derBytes = forge.asn1
+    .toDer(pki.certificateToAsn1(cert))
+    .getBytes();
+  return Buffer.from(derBytes, 'binary');
+}
 
 function sanitizeField(s, maxLen) {
   if (!s) return '';
@@ -311,7 +318,12 @@ async function renewFromCsrBytes(csrBytes, years, uploadedName) {
 
   const cert = signCsrWithDefaults(csr, y);
   const pem = pki.certificateToPem(cert);
-  return { filename: `${fileCn}.cer`, buffer: Buffer.from(pem, 'utf8') };
+  const derBuffer = pemCertToDerBuffer(pem);
+  
+  return {
+    filename: `${fileCn}.cer`,
+    buffer: derBuffer
+  };
 }
 
 // 3. CSR preview
@@ -378,7 +390,9 @@ async function renewBulkZip(zipBuffer, years) {
 
     const cert = signCsrWithDefaults(csr, y);
     const pem = pki.certificateToPem(cert);
-    outZip.file(`${fileCn}.cer`, pem);
+    const derBuffer = pemCertToDerBuffer(pem);
+    
+    outZip.file(`${fileCn}.cer`, derBuffer);
     count += 1;
   }
 

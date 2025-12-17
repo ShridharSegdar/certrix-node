@@ -1,7 +1,5 @@
 // netlify/functions/renew_bulk.js
-const {
-  renewBulkZip
-} = require('./certrix-core');
+const { renewBulkZip } = require('./certrix-core');
 
 function corsHeaders() {
   return {
@@ -29,8 +27,9 @@ exports.handler = async (event) => {
   }
 
   try {
-    const data = JSON.parse(event.body || '{}');
-    if (!data.zipBase64) {
+    const body = JSON.parse(event.body || '{}');
+
+    if (!body.zipBase64) {
       return {
         statusCode: 400,
         headers: corsHeaders(),
@@ -38,8 +37,9 @@ exports.handler = async (event) => {
       };
     }
 
-    const zipBuffer = Buffer.from(data.zipBase64, 'base64');
-    const result = await renewBulkZip(zipBuffer, data.years);
+    const zipBuffer = Buffer.from(body.zipBase64, 'base64');
+
+    const result = await renewBulkZip(zipBuffer, body.years);
 
     if (result.error) {
       return {
@@ -49,7 +49,6 @@ exports.handler = async (event) => {
       };
     }
 
-    const base64 = result.buffer.toString('base64');
     return {
       statusCode: 200,
       isBase64Encoded: true,
@@ -58,7 +57,7 @@ exports.handler = async (event) => {
         'Content-Type': 'application/zip',
         'Content-Disposition': `attachment; filename="${result.filename}"`
       },
-      body: base64
+      body: result.buffer.toString('base64')
     };
   } catch (err) {
     console.error('renew_bulk error:', err);
